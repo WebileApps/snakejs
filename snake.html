@@ -2,17 +2,35 @@
     canvas {
         border: 1px solid white;
     }
+    .scoreboard {
+        width : 400px;
+        display: flex;
+        justify-content: space-between;
+    }
 </style>
 <script>
 
-const velocity = 2; //2 units per second.
+let velocity = 2; //2 units per second.
 const snake = new Snake();
 let lastTimestamp = 0;
+const start = Date.now();
+const setTime = delta => {
+    const seconds = Math.floor(delta/ 1000);
+    document.getElementById("time").innerHTML = `${Math.floor(Math.floor(seconds / 60) / 10)}${Math.floor(seconds / 60) % 10}:${Math.floor(seconds/ 10) % 6}${seconds % 10}`;;
+}
+const setSpeed = speed => {
+    document.getElementById("speed").innerHTML = Math.floor(speed);
+}
+const setScore = score => {
+    document.getElementById("score").innerHTML = Math.floor(score);
+}
 
 function move(timestamp) {
     if (timestamp - lastTimestamp < 1000/velocity) {
         return requestAnimationFrame(move);
     }
+    const now = Date.now();
+    setTime(now - start);
     lastTimestamp = timestamp
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -30,6 +48,10 @@ function move(timestamp) {
         requestAnimationFrame(move);
     }
 }
+
+document.addEventListener("DOMContentLoaded", function() {
+    requestAnimationFrame(move);
+});
 
 function Snake() {
     this.body = [{x :2, y:0}, {x :1, y:0}, {x :0, y:0}];
@@ -75,7 +97,14 @@ Snake.prototype.CELLS_Y = 600 / Snake.prototype.TILE_SIDE_LENGTH;
 
 Snake.prototype.drawBackground = function(ctx) {
     ctx.strokeStyle = "lightgray";
-    ctx.lineWidth = 0.25;
+    ctx.strokeRect(0, 0, Snake.prototype.CELLS_X * Snake.prototype.TILE_SIDE_LENGTH, Snake.prototype.CELLS_Y * Snake.prototype.TILE_SIDE_LENGTH)
+    // ctx.lineWidth = 0.25;
+    ctx.moveTo(0,0);
+    ctx.lineTo(Snake.prototype.CELLS_X * Snake.prototype.TILE_SIDE_LENGTH, 0);
+    ctx.lineTo(Snake.prototype.CELLS_X * Snake.prototype.TILE_SIDE_LENGTH, Snake.prototype.CELLS_Y * Snake.prototype.TILE_SIDE_LENGTH);
+    ctx.lineTo(0, Snake.prototype.CELLS_Y * Snake.prototype.TILE_SIDE_LENGTH);
+    ctx.lineTo(0,0);
+
     for (let i = 1; i < Snake.prototype.CELLS_X; i++) {
 		ctx.moveTo(i * Snake.prototype.TILE_SIDE_LENGTH, 0);
 		ctx.lineTo(i * Snake.prototype.TILE_SIDE_LENGTH, Snake.prototype.CELLS_Y * Snake.prototype.TILE_SIDE_LENGTH);
@@ -90,36 +119,67 @@ Snake.prototype.drawBackground = function(ctx) {
 Snake.prototype.draw = function(ctx) {
     ctx.fillStyle = 'black';
     const lineWidth = 1;
-    const inset = (x, y, width, height) => {
-        return [x+lineWidth, y+lineWidth, width - 2 * lineWidth, height - 2 * lineWidth]
+    const inset = (x, y) => {
+        return [x * Snake.prototype.TILE_SIDE_LENGTH + lineWidth, 
+        y * Snake.prototype.TILE_SIDE_LENGTH + lineWidth,
+        Snake.prototype.TILE_SIDE_LENGTH - 2 * lineWidth, 
+        Snake.prototype.TILE_SIDE_LENGTH - 2 * lineWidth
+    ]
     }
     //draw snake
     this.body.forEach(({x, y}) => {
-        ctx.fillRect(...inset(x * Snake.prototype.TILE_SIDE_LENGTH, y * Snake.prototype.TILE_SIDE_LENGTH, Snake.prototype.TILE_SIDE_LENGTH, Snake.prototype.TILE_SIDE_LENGTH));
+        ctx.fillRect(...inset(x , y));
     });
+
+    ctx.fillStyle = "red";
+    ctx.fillRect(...inset(this.foodXY.x, this.foodXY.y));
 }
 
 Snake.prototype.advance = function() {
-    const direction = this.directionQueue.pop() || this.currentDirection || Snake.prototype.DIRECTION_RIGHT;
-    const retVal = moveSnake([...this.body]);
+    if (!this.foodXY) {
+        this.foodXY = this.placeFood();
+    }
+    let direction = this.directionQueue.pop() || this.currentDirection || Snake.prototype.DIRECTION_RIGHT;
+    if ((this.currentDirection + direction) % 2 == 0) {
+        direction = this.currentDirection || Snake.prototype.DIRECTION_RIGHT;
+    }
+    const retVal = moveSnake([...this.body], direction, this.foodXY.x, this.foodXY.y);
     this.currentDirection = direction;
-    if (Array.isArray(retVal)) {
-        this.body = [...retVal];
-        return false;
-    } else {
+    if (!Array.isArray(retVal)) {
         return true;
     }
-    // this.body = this.body.map(({x, y}) => ({x: x+1, y}));
+    if (retVal.length != this.body.length) {
+        this.foodXY = this.placeFood();
+    }
+    this.body = [...retVal];
+    velocity = 2 + Math.floor((this.body.length - 3) / 2);
+    setScore(this.body.length);
+    setSpeed(velocity);
+    return false;
 }
 
-Snake.prototype.food = function() {
-
+Snake.prototype.placeFood = function() {
+    do {
+        const foodX = Math.floor(Math.random() * Snake.prototype.CELLS_X);
+        const foodY = Math.floor(Math.random() * Snake.prototype.CELLS_Y);
+        const isFoodOnBody = this.body.some(({x, y}) => x == foodX && y == foodY);
+        if (!isFoodOnBody) {
+            return { x: foodX, y: foodY};
+        }
+    } while(true);
 }
-
-document.addEventListener("DOMContentLoaded", function() {
-    requestAnimationFrame(move);
-});
 
 </script>
 <script src="./game.js"></script>
+<div class="scoreboard">
+    <div>
+        Score : <span id="score">3</span>
+    </div>
+    <div>
+        Speed : <span id="speed">2</span>
+    </div>
+    <div>
+        Time : <span id="time">0:00</span>
+    </div>
+</div>
 <canvas id="canvas" width="400" height="600"></canvas>
