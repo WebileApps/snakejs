@@ -1,0 +1,125 @@
+<style>
+    canvas {
+        border: 1px solid white;
+    }
+</style>
+<script>
+
+const velocity = 2; //2 units per second.
+const snake = new Snake();
+let lastTimestamp = 0;
+
+function move(timestamp) {
+    if (timestamp - lastTimestamp < 1000/velocity) {
+        return requestAnimationFrame(move);
+    }
+    lastTimestamp = timestamp
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    //draw checkquered canvas.
+
+    ctx.fillStyle = "white";
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    // ctx.fillRect(0,0,canvas.width, canvas.height);
+
+    snake.drawBackground(ctx);
+    const gameOver = snake.advance();
+    snake.draw(ctx);
+    if (!gameOver) {
+        requestAnimationFrame(move);
+    }
+}
+
+function Snake() {
+    this.body = [{x :2, y:0}, {x :1, y:0}, {x :0, y:0}];
+    this.currentDirection = 3;
+    this.currentX = 2;
+    this.currentY = 0;
+    this.directionQueue = [];
+    const push = (newDirection) => {
+        if (this.directionQueue.length == 0) {
+            return this.directionQueue.push(newDirection);
+        }
+        const lastDirection = this.directionQueue.pop();
+        if((lastDirection + newDirection) %2 != 0) {
+            this.directionQueue.push(newDirection);
+        } else {
+            this.directionQueue.push(lastDirection);
+        }
+    }
+    document.addEventListener("keydown", ({keyCode}) => {
+    if (keyCode == 37) {
+        push(Snake.prototype.DIRECTION_LEFT);
+    }
+    if (keyCode == 38) {
+        push(Snake.prototype.DIRECTION_UP);
+    }
+    if (keyCode == 39) {
+        push(Snake.prototype.DIRECTION_RIGHT);
+    }
+    if (keyCode == 40) {
+        push(Snake.prototype.DIRECTION_DOWN);
+    }
+});
+}
+
+
+Snake.prototype.DIRECTION_LEFT = 1;
+Snake.prototype.DIRECTION_UP = 2;
+Snake.prototype.DIRECTION_RIGHT = 3;
+Snake.prototype.DIRECTION_DOWN = 4;
+Snake.prototype.TILE_SIDE_LENGTH = 20;
+Snake.prototype.CELLS_X = 400 / Snake.prototype.TILE_SIDE_LENGTH;
+Snake.prototype.CELLS_Y = 600 / Snake.prototype.TILE_SIDE_LENGTH;
+
+Snake.prototype.drawBackground = function(ctx) {
+    ctx.strokeStyle = "lightgray";
+    ctx.lineWidth = 0.25;
+    for (let i = 1; i < Snake.prototype.CELLS_X; i++) {
+		ctx.moveTo(i * Snake.prototype.TILE_SIDE_LENGTH, 0);
+		ctx.lineTo(i * Snake.prototype.TILE_SIDE_LENGTH, Snake.prototype.CELLS_Y * Snake.prototype.TILE_SIDE_LENGTH);
+    }
+    for (let i = 1; i < Snake.prototype.CELLS_Y; i++) {
+		ctx.moveTo(0 , i * Snake.prototype.TILE_SIDE_LENGTH);
+		ctx.lineTo(Snake.prototype.CELLS_X * Snake.prototype.TILE_SIDE_LENGTH, i * Snake.prototype.TILE_SIDE_LENGTH);
+    }
+    ctx.stroke();
+}
+
+Snake.prototype.draw = function(ctx) {
+    ctx.fillStyle = 'black';
+    const lineWidth = 1;
+    const inset = (x, y, width, height) => {
+        return [x+lineWidth, y+lineWidth, width - 2 * lineWidth, height - 2 * lineWidth]
+    }
+    //draw snake
+    this.body.forEach(({x, y}) => {
+        ctx.fillRect(...inset(x * Snake.prototype.TILE_SIDE_LENGTH, y * Snake.prototype.TILE_SIDE_LENGTH, Snake.prototype.TILE_SIDE_LENGTH, Snake.prototype.TILE_SIDE_LENGTH));
+    });
+}
+
+Snake.prototype.advance = function() {
+    const direction = this.directionQueue.pop() || this.currentDirection || Snake.prototype.DIRECTION_RIGHT;
+    const retVal = moveSnake([...this.body]);
+    this.currentDirection = direction;
+    if (Array.isArray(retVal)) {
+        this.body = [...retVal];
+        return false;
+    } else {
+        return true;
+    }
+    // this.body = this.body.map(({x, y}) => ({x: x+1, y}));
+}
+
+Snake.prototype.food = function() {
+
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    requestAnimationFrame(move);
+});
+
+</script>
+<script src="./game.js"></script>
+<canvas id="canvas" width="400" height="600"></canvas>
