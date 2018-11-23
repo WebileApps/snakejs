@@ -21,13 +21,25 @@ const CELLS_Y = 30;
  */
 function moveSnake(body, direction, foodX, foodY) {
 
-    //Return new body 
-    // Uncomment the following to see.
-        if (body[0].x == CELLS_X - 1) {
-            return false;
+    const [{x, y}] = body;
+    const nextHead = (direction) => {
+        if (direction == Snake.prototype.DIRECTION_DOWN) {
+            return { x, y: y+1};
         }
-        return body.map(function(point) { 
-            return {x: point.x+1, y: point.y};
-        })
-    // return body;
+        if (direction == Snake.prototype.DIRECTION_RIGHT) {
+            return { x: x+1, y};
+        }
+        if (direction == Snake.prototype.DIRECTION_UP) {
+            return { x, y: y-1};
+        }
+        if (direction == Snake.prototype.DIRECTION_LEFT) {
+            return { x: x-1, y};
+        }
+    }
+    const newHead = nextHead(direction)
+    body.unshift(newHead);
+    if(newHead.x != foodX || newHead.y != foodY) {
+        body.pop();
+    }
+    return body;
 }
